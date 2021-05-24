@@ -22,18 +22,15 @@ def _test_with_tvm(inputs,
                    dtype="float32",
                    target="cuda"):
     import tvm
-    from tvm.contrib import graph_runtime
+    from tvm.contrib import graph_executor
 
     mod, params = arcface_mxnet_to_tvm(model_prefix, epoch, image_size, dtype)
     with tvm.transform.PassContext(opt_level=3):
         lib = relay.build(mod["main"], target, params=params)
     ctx = tvm.gpu(0)
-    m = graph_runtime.GraphModule(lib["default"](ctx))
-    # set inputs
+    m = graph_executor.GraphModule(lib["default"](ctx))
     m.set_input(INPUT_NAME, tvm.nd.array(inputs.astype(dtype)))
-    # execute
     m.run()
-    # get outputs
     tvm_output = m.get_output(0)
 
     return tvm_output.asnumpy()
@@ -57,7 +54,7 @@ def _test_with_mxnet(inputs,
 if __name__ == '__main__':
     import numpy as np
 
-    model_prefix = "/ssd01/zhangyiyang/tensorrtx/arcface/insightface/deploy/model-y1-test2/model"
+    model_prefix = "../data/model-y1-test2/model"
     epoch = 0
     image_size = (112, 112)
     dtype = "float32"
