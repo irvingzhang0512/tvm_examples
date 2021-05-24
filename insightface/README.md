@@ -3,7 +3,7 @@
 ## Steps
 
 + Step 1: Download arcface pretrained models from [model zoo](https://github.com/deepinsight/insightface/wiki/Model-Zoo) and unzip them.
-+ Step 2: Use `mxnet_to_tvm.py` to convert downloaded model to tvm relay.
++ Step 2: Modify `model_prefix` in `mxnet_to_tvm.py` and run this script to convert downloaded model to tvm relay.
 + Step 3: Auto tune and deploy.
 
 ## TODO
