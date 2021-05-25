@@ -2,3 +2,4 @@
 .pkl_memorize_py3/
 data/
 __pycache__/
+logs/
