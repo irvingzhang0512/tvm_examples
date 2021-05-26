@@ -79,7 +79,7 @@ class BaseTvmUtils:
         # returns (mod, params)
         pass
 
-    def do_inference(self, inputs, input_name):
+    def inference(self, inputs, input_name):
         data_tvm = tvm.nd.array(inputs)
         self.module.set_input(input_name, data_tvm)
         self.module.run()
@@ -244,7 +244,7 @@ if __name__ == '__main__':
     tool.export_lib("lib/cpu.so")
 
     # inference with tvm
-    tool.do_inference(inputs, INPUT_NAME)
+    tool.inference(inputs, INPUT_NAME)
 
     # verify with mxnet
     _test_with_mxnet(inputs, model_prefix, epoch, image_size)

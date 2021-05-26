@@ -23,7 +23,7 @@ class TvmDeployementTool:
                 self.dev))
         return self._module
 
-    def do_inference(self, inputs, input_name):
+    def inference(self, inputs, input_name):
         data_tvm = tvm.nd.array(inputs)
         self.module.set_input(input_name, data_tvm)
         self.module.run()
@@ -45,5 +45,5 @@ if __name__ == '__main__':
         "/ssd01/zhangyiyang/tvm_examples/insightface/lib/cpu.so",
         tvm.device("cpu"))
     print(
-        tool.do_inference(np.ones((1, 3, 112, 112), np.float32),
-                          INPUT_NAME).asnumpy().reshape(-1)[:10])
+        tool.inference(np.ones((1, 3, 112, 112), np.float32),
+                       INPUT_NAME).asnumpy().reshape(-1)[:10])

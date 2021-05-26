@@ -79,7 +79,7 @@ class TvmDevelopmentUtils:
         # returns (mod, params)
         pass
 
-    def do_inference(self, inputs, input_name):
+    def inference(self, inputs, input_name):
         data_tvm = tvm.nd.array(inputs)
         self.module.set_input(input_name, data_tvm)
         self.module.run()
