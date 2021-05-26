@@ -1,26 +1,17 @@
-from abc import abstractmethod
-import numpy as np
+import logging
 import os
+from abc import abstractmethod
 
+import mxnet as mx
+import numpy as np
 import tvm
-from tvm import relay, auto_scheduler
+from tvm import auto_scheduler, relay
 from tvm.contrib import graph_executor
 
-import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
 
-from abc import abstractmethod
-import numpy as np
-import os
-
-import tvm
-from tvm import relay, auto_scheduler
-from tvm.contrib import graph_executor
-
-import logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger()
+INPUT_NAME = "data"
 
 
 class BaseTvmUtils:
@@ -202,7 +193,6 @@ class ArcFaceUtils(BaseTvmUtils):
 
     def network_fn(self):
         # returns (mod, params)
-        import mxnet as mx
         shape_dict = {"data": self.image_size}
         sym, arg_params, aux_params = mx.model.load_checkpoint(
             self.model_prefix, self.epoch)
@@ -211,10 +201,50 @@ class ArcFaceUtils(BaseTvmUtils):
         return mod, params
 
 
+def _test_with_mxnet(inputs,
+                     model_prefix,
+                     epoch,
+                     image_size=(1, 3, 112, 112),
+                     ctx=mx.gpu(0)):
+    sym, arg_params, aux_params = mx.model.load_checkpoint(model_prefix, epoch)
+    model = mx.mod.Module(symbol=sym, context=ctx, label_names=None)
+    model.bind(data_shapes=[(INPUT_NAME, image_size)])
+    model.set_params(arg_params, aux_params)
+    data = mx.nd.array(inputs)
+    db = mx.io.DataBatch(data=(data, ))
+    model.forward(db, is_train=False)
+    return model.get_outputs()[0].asnumpy()
+
+
 if __name__ == '__main__':
-    tool = ArcFaceUtils("../data/insightface/model-y1-test2/model", 0,
-                        'arcface-mobilefacenet', (1, 3, 112, 112),
-                        tvm.target.Target("llvm -mcpu=core-avx2"), "NHWC",
-                        "float32")
-    # tool.local_auto_scheduler()
+    model_prefix = "../../data/insightface/model-y1-test2/model"
+    epoch = 0
+    image_size = (1, 3, 112, 112)
+    dtype = "float32"
+    inputs = np.ones((1, 3) + image_size, dtype)
+
+    # init
+    tool = ArcFaceUtils(
+        model_prefix=model_prefix,
+        epoch=epoch,
+        network_name='arcface-mobilefacenet',
+        image_size=image_size,
+        target=tvm.target.Target("llvm"),
+        layout="NHWC",
+        dtype=dtype,
+        log_file='lib/arcface-mobilefacenet-(1, 3, 112, 112)-NHWC-llvm.json')
+
+    # auto tune, generate log_file
+    tool.local_auto_scheduler()
+
+    # evaluate inference speed
     tool.evaluate()
+
+    # export optimized library
+    tool.export_lib("lib/cpu.so")
+
+    # inference with tvm
+    tool.do_inference(inputs, INPUT_NAME)
+
+    # verify with mxnet
+    _test_with_mxnet(inputs, model_prefix, epoch, image_size)
